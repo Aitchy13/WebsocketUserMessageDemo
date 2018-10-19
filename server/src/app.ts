@@ -10,12 +10,20 @@ interface Session {
     messages: Message[];
     clientName: string;
     connection: WebSocket;
-    agentName?: string;
 }
 
 interface Message {
     date: Date;
     text: string;
+    sender: string;
+}
+
+interface SendMessageRequest extends express.Request {
+    body: {
+        sessionId: string;
+        sender: string;
+        message: string;
+    }
 }
 
 
@@ -46,7 +54,13 @@ function getSession(id: string) {
 }
 
 function listSessions() {
-    return sessionRepo;
+    return _.map(sessionRepo, x => {
+        return {
+            id: x.id,
+            clientName: x.clientName,
+            messages: x.messages
+        };
+    });
 }
 
 function deleteSession(sessionId: string) {
@@ -57,20 +71,24 @@ function deleteSession(sessionId: string) {
 // Retrieve all new sessions
 expressApp.get('/session', (req, res) => {
     try {
-        res.send({
-            data: listSessions()
-        });
+        res.send(listSessions());
     } catch (e) {
         console.error(e);
         res.sendStatus(500);
     }
 });
 
-expressApp.post('/session/message', (req, res) => {
+expressApp.post('/session/message', (req: SendMessageRequest, res) => {
     try {
-        res.send({
-
-        })
+        const session = getSession(req.body.sessionId);
+        const message = {
+            date: new Date(),
+            sender: req.body.sender,
+            text: req.body.message
+        };
+        session.messages.push(message);
+        session.connection.send(JSON.stringify(message));
+        res.sendStatus(204);
     } catch (e) {
         console.error(e);
         res.sendStatus(500);
@@ -104,22 +122,15 @@ webSocketServer.on('listening', () => {
 
 webSocketServer.on('connection', (ws, req) => {
     try {
-        console.log('Chat.WSS', 'New connection');
-        const name = querystring.parse(req.url)['name'] as string;
+        const strippedPath = req.url.replace('/?', '');
+        const name = querystring.parse(strippedPath)['name'] as string;
+        console.log('Chat.WSS', 'New connection from ' + name);
 
-        // Used for reconnections
-        const sessionId = querystring.parse(req.url)['sessionId'] as string;
-        if (sessionId) {
-
-        }
-        const session = !sessionId ? getSession(sessionId) : createSession(name, ws);
+        const sessionId = querystring.parse(strippedPath)['sessionId'] as string;
+        const session = sessionId ? getSession(sessionId) : createSession(name, ws);
         if (!session) {
             throw new Error('Session could not be retrieved');
         }
-
-        session.connection.on('message', message => {
-            
-        });
     } catch (e) {
         console.log(e);
     }

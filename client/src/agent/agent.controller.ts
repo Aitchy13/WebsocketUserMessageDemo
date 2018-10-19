@@ -1,12 +1,15 @@
-import { ChatService } from "../chat.service";
+import { ChatService } from "../services/chat.service";
 import { Session } from "../interfaces/session";
 
-class AgentController {
+export class AgentController {
 
     private sessions: Session[];
     private sessionContainer: HTMLElement;
 
     constructor(private readonly chatService: ChatService) {
+        if (!document.getElementById("agent-view")) {
+            return;
+        }
         this.initialise();
     }
 
@@ -21,35 +24,37 @@ class AgentController {
     }
 
     private render() {
-        if (!this.sessions) {
+        if (!this.sessions || this.sessions.length === 0) {
             this.sessionContainer.innerHTML = `<p>No sessions</p>`;
             return;
         }
-        const template = `<p>
-            <strong>ID:</strong> {{id}}<br />
-            <strong>Name:</strong> {{name}}<br />
-            <strong>Agent:</strong> {{agent}}<br />
-            <strong>Messages:</strong> {{messages}}<br />
-        </p>`;
-        let sessionContainerHTML: string;
+        const template = `
+            <p>
+                <strong>ID:</strong> {{id}}<br />
+                <strong>Name:</strong> {{name}}<br />
+                <strong>Messages:</strong> {{messages}}<br />
+            </p>
+            <button id="send-button{{id}}">Send greeting</button>`;
+        let sessionContainerHTML: string = "";
         this.sessions.forEach(x => {
             sessionContainerHTML += this.generateTemplate(template, {
                 id: x.id,
                 name: x.clientName,
-                agent: x.agentName,
                 messages: x.messages.length
             })
         });
         this.sessionContainer.innerHTML = sessionContainerHTML;
+        this.sessions.forEach(x => {
+            const button = document.getElementById("send-button" + x.id);
+            button.addEventListener("click", () => this.chatService.sendMessage(x.id, "Mr. Agent", "Hi, " + x.clientName));
+        })
     }
 
     private generateTemplate(template: string, data: {[key: string]: any}) {
         const keys = Object.keys(data);
-        const result = template;
-        keys.forEach(x => result.replace(x, data[x]));
+        let result = template;
+        keys.forEach(x => result = result.replace(new RegExp(`{{${x}}}`, "g"), data[x]));
+        return result;
     }
 
 }
-
-const chatService = new ChatService();
-var controller = new AgentController(chatService);

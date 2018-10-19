@@ -1,15 +1,18 @@
 {
+  "compileOnSave": true,
   "compilerOptions": {
-    "target": "es2015",
-    "module": "none",
-    "noImplicitAny": true,
-    "moduleResolution": "node",
-    "sourceMap": true,
-    "outDir": "dist",
-    "baseUrl": "/.",
-    "paths": {
-      "*": ["node_modules/*"]
-    }
+      "target": "es5",
+      "lib": ["dom", "es6"],
+      "allowJs": true,
+      "module": "es6",
+      "moduleResolution": "node",
+      "noImplicitAny": true,
+      "removeComments": false,
+      "sourceMap": true,
+      "experimentalDecorators": true,
+      "emitDecoratorMetadata": true
   },
-  "include": ["src/**/*"]
+  "exclude": [
+      "**/**.spec.ts"
+  ]
 }
